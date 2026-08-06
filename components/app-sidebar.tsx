@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { usePathname } from "next/navigation"
 import {
   Award,
   FileText,
@@ -10,9 +10,8 @@ import {
   Settings,
   Users,
 } from "lucide-react"
-import { usePathname } from "next/navigation"
-
-import { NavSecondary } from "@/components/nav-secondary"
+import {TooltipProvider} from "@/components/ui/tooltip"
+import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -23,7 +22,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/hooks/use-auth"
 
 const navItems = [
   { title: "Blog", url: "/dashboard/blog", icon: FileText },
@@ -37,46 +35,43 @@ const navItems = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
 
-  // Build nav items with active state based on pathname
   const items = navItems.map((item) => ({
     ...item,
     isActive: pathname.startsWith(item.url),
   }))
 
   return (
-    <Sidebar
-      className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
-      {...props}
-    >
+    <Sidebar {...props}>
+      <TooltipProvider>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="/dashboard/blog">
-                <span className="font-mono text-lg font-semibold tracking-tighter">
-                  adhaghani
-                </span>
+                <div className="flex aspect-square size-8 items-center justify-center rounded-none bg-sidebar-primary text-sidebar-primary-foreground">
+                  <span className="font-mono text-xs font-semibold">a</span>
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-mono font-semibold tracking-tighter">
+                    adhaghani
+                  </span>
+                  <span className="truncate font-mono text-xs text-muted-foreground">
+                    admin
+                  </span>
+                </div>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-
       <SidebarContent>
-        <NavSecondary items={items} />
+        <NavMain label="Content" items={items} />
       </SidebarContent>
-
       <SidebarFooter>
-        <NavUser
-          user={{
-            name: user?.email?.split("@")[0] ?? "Admin",
-            email: user?.email ?? "",
-          }}
-          onLogout={logout}
-        />
+        <NavUser />
       </SidebarFooter>
+      </TooltipProvider>
     </Sidebar>
   )
 }

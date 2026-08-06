@@ -2,6 +2,7 @@
 
 import { ChevronsUpDown, LogOut } from "lucide-react"
 
+import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -18,23 +19,22 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-export function NavUser({
-  user,
-  onLogout,
-}: {
-  user: {
-    name: string
-    email: string
-  }
-  onLogout: () => void
-}) {
-  const { isMobile } = useSidebar()
-  const initials = user.name
-    .split(" ")
+function getInitials(email: string): string {
+  const name = email.split("@")[0]
+  return name
+    .split(/[.\-_]/)
     .map((n) => n[0])
     .join("")
     .slice(0, 2)
     .toUpperCase()
+}
+
+export function NavUser() {
+  const { user, logout } = useAuth()
+  const { isMobile } = useSidebar()
+
+  const email = user?.email ?? "admin@example.com"
+  const initials = getInitials(email)
 
   return (
     <SidebarMenu>
@@ -51,9 +51,11 @@ export function NavUser({
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-mono text-sm">{user.name}</span>
+                <span className="truncate font-mono text-sm">
+                  {email.split("@")[0]}
+                </span>
                 <span className="truncate font-mono text-[10px] text-muted-foreground">
-                  {user.email}
+                  {email}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
@@ -74,16 +76,16 @@ export function NavUser({
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-mono text-sm">
-                    {user.name}
+                    {email.split("@")[0]}
                   </span>
                   <span className="truncate font-mono text-[10px] text-muted-foreground">
-                    {user.email}
+                    {email}
                   </span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onLogout}>
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOut />
               Sign out
             </DropdownMenuItem>

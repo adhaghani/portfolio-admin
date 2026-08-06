@@ -25,10 +25,11 @@ export default function EditActivityPage() {
   async function handleSubmit(values: ActivityFormValues) {
     if (!activity) return
     await updateActivity(activity.id, values)
+    toast.success("Activity updated")
   }
 
   if (loading) return null
   if (!activity) return null
 
-  return <ActivityForm initialValues={activity} onSubmit={handleSubmit} submitLabel="Save changes" />
+  return <ActivityForm initialValues={activity} onSubmit={handleSubmit} submitLabel="Save changes" isEditing />
 }

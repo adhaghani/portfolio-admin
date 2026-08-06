@@ -25,10 +25,11 @@ export default function EditCertificatePage() {
   async function handleSubmit(values: CertificateFormValues) {
     if (!cert) return
     await updateCertificate(cert.id, values)
+    toast.success("Certificate updated")
   }
 
   if (loading) return null
   if (!cert) return null
 
-  return <CertificateForm initialValues={cert} onSubmit={handleSubmit} submitLabel="Save changes" />
+  return <CertificateForm initialValues={cert} onSubmit={handleSubmit} submitLabel="Save changes" isEditing />
 }

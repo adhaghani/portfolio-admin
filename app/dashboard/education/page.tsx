@@ -2,14 +2,10 @@
 
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
-import {
-  getEducationEntries,
-  deleteEducationEntry,
-} from "@/lib/admin/education"
+import { getEducationEntries, deleteEducationEntry } from "@/lib/admin/education"
 import type { EducationRow } from "@/lib/supabase/types"
-import { PageHeader } from "@/components/shared/page-header"
 import { DataTable } from "@/components/shared/data-table"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
@@ -22,18 +18,12 @@ export default function EducationListPage() {
   const [deleteTarget, setDeleteTarget] = useState<EducationRow | null>(null)
 
   const fetch = useCallback(async () => {
-    try {
-      setEntries(await getEducationEntries())
-    } catch {
-      toast.error("Failed to load education entries")
-    } finally {
-      setLoading(false)
-    }
+    try { setEntries(await getEducationEntries()) }
+    catch { toast.error("Failed to load education entries") }
+    finally { setLoading(false) }
   }, [])
 
-  useEffect(() => {
-    fetch()
-  }, [fetch])
+  useEffect(() => { fetch() }, [fetch])
 
   async function handleDelete() {
     if (!deleteTarget) return
@@ -43,26 +33,33 @@ export default function EducationListPage() {
       setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id))
     } catch {
       toast.error("Failed to delete entry")
-    } finally {
-      setDeleteTarget(null)
-    }
+    } finally { setDeleteTarget(null) }
   }
 
   if (loading) return null
 
   return (
-    <>
-      <PageHeader
-        title="Education"
-        actionLabel="New Entry"
-        actionHref="/dashboard/education/new"
-      />
+    <div className="flex h-full flex-col">
+      <div className="mb-8 flex items-end justify-between">
+        <div>
+          <h1 className="heading-mono">Education</h1>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+            {entries.length} {entries.length === 1 ? "entry" : "entries"}
+          </p>
+        </div>
+        <Button asChild className="bg-foreground text-background hover:bg-foreground/90">
+          <a href="/dashboard/education/new">
+            <Plus className="mr-1.5 size-4" />
+            New entry
+          </a>
+        </Button>
+      </div>
 
       {entries.length === 0 ? (
         <EmptyState
           title="No education entries yet"
           description="Add your education history."
-          actionLabel="New Entry"
+          actionLabel="New entry"
           actionHref="/dashboard/education/new"
         />
       ) : (
@@ -85,22 +82,12 @@ export default function EducationListPage() {
           actions={(e) => {
             const row = e as unknown as EducationRow
             return (
-              <div className="flex items-center justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    router.push(`/dashboard/education/${row.id}`)
-                  }
-                >
+              <div className="flex items-center justify-end gap-0.5">
+                <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard/education/${row.id}`)} className="size-8">
                   <Pencil className="size-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDeleteTarget(row)}
-                >
-                  <Trash2 className="size-4 text-destructive" />
+                <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(row)} className="size-8 text-muted-foreground hover:text-destructive">
+                  <Trash2 className="size-4" />
                 </Button>
               </div>
             )
@@ -112,9 +99,9 @@ export default function EducationListPage() {
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
         title="Delete education entry?"
-        description={`"${deleteTarget?.degree}" will be permanently deleted.`}
+        description={`"${deleteTarget?.institution}" will be permanently deleted.`}
         onConfirm={handleDelete}
       />
-    </>
+    </div>
   )
 }

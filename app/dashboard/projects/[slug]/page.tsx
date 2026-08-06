@@ -25,10 +25,11 @@ export default function EditProjectPage() {
   async function handleSubmit(values: ProjectFormValues) {
     if (!project) return
     await updateProject(project.id, values)
+    toast.success("Project updated")
   }
 
   if (loading) return null
   if (!project) return null
 
-  return <ProjectForm initialValues={project} onSubmit={handleSubmit} submitLabel="Save changes" />
+  return <ProjectForm initialValues={project} onSubmit={handleSubmit} submitLabel="Save changes" isEditing />
 }

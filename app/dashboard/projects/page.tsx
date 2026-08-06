@@ -2,11 +2,10 @@
 
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getProjects, deleteProject } from "@/lib/admin/projects"
 import type { ProjectRow } from "@/lib/supabase/types"
-import { PageHeader } from "@/components/shared/page-header"
 import { DataTable } from "@/components/shared/data-table"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
@@ -29,9 +28,7 @@ export default function ProjectsListPage() {
     }
   }, [])
 
-  useEffect(() => {
-    fetch()
-  }, [fetch])
+  useEffect(() => { fetch() }, [fetch])
 
   async function handleDelete() {
     if (!deleteTarget) return
@@ -49,18 +46,27 @@ export default function ProjectsListPage() {
   if (loading) return null
 
   return (
-    <>
-      <PageHeader
-        title="Projects"
-        actionLabel="New Project"
-        actionHref="/dashboard/projects/new"
-      />
+    <div className="flex h-full flex-col">
+      <div className="mb-8 flex items-end justify-between">
+        <div>
+          <h1 className="heading-mono">Projects</h1>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+            {projects.length} {projects.length === 1 ? "project" : "projects"}
+          </p>
+        </div>
+        <Button asChild className="bg-foreground text-background hover:bg-foreground/90">
+          <a href="/dashboard/projects/new">
+            <Plus className="mr-1.5 size-4" />
+            New project
+          </a>
+        </Button>
+      </div>
 
       {projects.length === 0 ? (
         <EmptyState
           title="No projects yet"
           description="Add your first project to showcase your work."
-          actionLabel="New Project"
+          actionLabel="New project"
           actionHref="/dashboard/projects/new"
         />
       ) : (
@@ -74,11 +80,11 @@ export default function ProjectsListPage() {
               header: "Featured",
               render: (p) =>
                 (p as unknown as ProjectRow).featured ? (
-                  <Badge variant="outline" className="font-mono text-[10px]">
+                  <Badge variant="outline" className="font-mono text-[10px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
                     Featured
                   </Badge>
                 ) : (
-                  "—"
+                  <span className="text-muted-foreground">—</span>
                 ),
             },
           ]}
@@ -86,22 +92,12 @@ export default function ProjectsListPage() {
           actions={(p) => {
             const row = p as unknown as ProjectRow
             return (
-              <div className="flex items-center justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    router.push(`/dashboard/projects/${row.slug}`)
-                  }
-                >
+              <div className="flex items-center justify-end gap-0.5">
+                <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard/projects/${row.slug}`)} className="size-8">
                   <Pencil className="size-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDeleteTarget(row)}
-                >
-                  <Trash2 className="size-4 text-destructive" />
+                <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(row)} className="size-8 text-muted-foreground hover:text-destructive">
+                  <Trash2 className="size-4" />
                 </Button>
               </div>
             )
@@ -116,6 +112,6 @@ export default function ProjectsListPage() {
         description={`"${deleteTarget?.title}" will be permanently deleted.`}
         onConfirm={handleDelete}
       />
-    </>
+    </div>
   )
 }

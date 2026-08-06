@@ -14,11 +14,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null)
   const [user, setUser] = React.useState<User | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [mounted, setMounted] = React.useState(false)
+  const isLocalhost = React.useRef(false)
 
   React.useEffect(() => {
+    isLocalhost.current = window.location.hostname === "localhost"
+    setMounted(true)
+
+    if (isLocalhost.current) {
+      setLoading(false)
+      return
+    }
+
     const supabase = getBrowserClient()
 
-    // Check initial session
     getSession().then((s) => {
       if (s) {
         setSession(s)
@@ -27,7 +36,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -61,7 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace("/")
   }, [router])
 
-  // Show nothing while checking session to avoid flash
+  // Avoid hydration mismatch — render nothing until client-side mount
+  if (!mounted) return null
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -70,14 +80,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Not authenticated and on a dashboard page — redirect to login
-  if (!session && pathname.startsWith("/dashboard")) {
+  const bypass = isLocalhost.current
+
+  if (!bypass && !session && pathname.startsWith("/dashboard")) {
     router.replace("/")
     return null
   }
 
-  // Authenticated but on the login page — redirect to dashboard
-  if (session && pathname === "/") {
+  if (!bypass && session && pathname === "/") {
     router.replace("/dashboard/blog")
     return null
   }

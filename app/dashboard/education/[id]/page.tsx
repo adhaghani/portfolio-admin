@@ -25,10 +25,11 @@ export default function EditEducationPage() {
   async function handleSubmit(values: EducationFormValues) {
     if (!entry) return
     await updateEducationEntry(entry.id, values)
+    toast.success("Entry updated")
   }
 
   if (loading) return null
   if (!entry) return null
 
-  return <EducationForm initialValues={entry} onSubmit={handleSubmit} submitLabel="Save changes" />
+  return <EducationForm initialValues={entry} onSubmit={handleSubmit} submitLabel="Save changes" isEditing />
 }

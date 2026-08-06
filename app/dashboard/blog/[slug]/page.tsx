@@ -18,17 +18,28 @@ export default function EditBlogPage() {
   useEffect(() => {
     getBlogPost(params.slug as string)
       .then((data) => setPost(data as BlogRow))
-      .catch(() => { toast.error("Blog post not found"); router.push("/dashboard/blog") })
+      .catch(() => {
+        toast.error("Blog post not found")
+        router.push("/dashboard/blog")
+      })
       .finally(() => setLoading(false))
   }, [params.slug, router])
 
   async function handleSubmit(values: BlogPostFormValues) {
     if (!post) return
     await updateBlogPost(post.id, values)
+    toast.success("Blog post updated")
   }
 
   if (loading) return null
   if (!post) return null
 
-  return <BlogForm initialValues={post} onSubmit={handleSubmit} submitLabel="Save changes" />
+  return (
+    <BlogForm
+      initialValues={post}
+      onSubmit={handleSubmit}
+      submitLabel="Save changes"
+      isEditing
+    />
+  )
 }
