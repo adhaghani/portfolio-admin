@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { createActivity } from "@/lib/admin/activities"
 import { ActivityForm } from "@/components/activities/activity-form"
+import { getErrorMessage } from "@/lib/error-utils"
 import type { ActivityFormValues } from "@/lib/validations"
 
 export default function NewActivityPage() {
@@ -14,7 +15,7 @@ export default function NewActivityPage() {
       toast.success("Activity created")
       router.push("/dashboard/activities")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create activity")
+      toast.error(getErrorMessage(err, "Failed to create activity"))
     }
   }
   return <ActivityForm onSubmit={handleSubmit} submitLabel="Create activity" />

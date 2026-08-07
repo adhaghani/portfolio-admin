@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { createProject } from "@/lib/admin/projects"
 import { ProjectForm } from "@/components/projects/project-form"
+import { getErrorMessage } from "@/lib/error-utils"
 import type { ProjectFormValues } from "@/lib/validations"
 
 export default function NewProjectPage() {
@@ -15,9 +16,7 @@ export default function NewProjectPage() {
       toast.success("Project created")
       router.push("/dashboard/projects")
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to create project",
-      )
+      toast.error(getErrorMessage(err, "Failed to create project"))
     }
   }
 

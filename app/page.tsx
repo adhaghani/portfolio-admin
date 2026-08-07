@@ -3,9 +3,12 @@
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+const MAX_LOGIN_ATTEMPTS = 5
 
 export default function LoginPage() {
   const { login, loading: authLoading } = useAuth()
@@ -13,17 +16,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000)
+      setError(`Too many attempts. Please wait ${remaining}s.`)
+      return
+    }
+
     setSubmitting(true)
     try {
       await login(email, password)
+      setAttempts(0)
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Invalid email or password.",
-      )
+      const next = attempts + 1
+      setAttempts(next)
+      if (next >= MAX_LOGIN_ATTEMPTS) {
+        const delay = Math.min(30_000, Math.pow(2, next - MAX_LOGIN_ATTEMPTS + 1) * 1000)
+        setLockoutUntil(Date.now() + delay)
+        setError(`Too many attempts. Please wait ${delay / 1000}s.`)
+      } else {
+        setError(getErrorMessage(err, "Invalid email or password."))
+      }
     } finally {
       setSubmitting(false)
     }

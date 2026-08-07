@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
 import { getBrowserClient } from "@/lib/supabase/client"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Button } from "@/components/ui/button"
 
 export default function SettingsPage() {
@@ -19,9 +20,7 @@ export default function SettingsPage() {
       if (error) throw error
       toast.success("Password reset email sent")
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to send reset email",
-      )
+      toast.error(getErrorMessage(err, "Failed to send reset email"))
     } finally {
       setSending(false)
     }

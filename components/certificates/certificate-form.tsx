@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { ChevronLeft, Loader2 } from "lucide-react"
 import { certificateSchema, type CertificateFormValues } from "@/lib/validations"
 import type { CertificateUpdateInput } from "@/lib/admin/certificates"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -43,7 +44,7 @@ export function CertificateForm({ initialValues, onSubmit, submitLabel, isEditin
   async function handleFormSubmit(values: CertificateFormValues) {
     setSaving(true)
     try { await onSubmit(values); if (!isEditing) toast.success("Certificate created") }
-    catch (err) { toast.error(err instanceof Error ? err.message : "Something went wrong") }
+    catch (err) { toast.error(getErrorMessage(err, "Something went wrong")) }
     finally { setSaving(false) }
   }
 

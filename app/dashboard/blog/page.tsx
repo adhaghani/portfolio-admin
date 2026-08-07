@@ -6,6 +6,7 @@ import { Pencil, Plus, Search, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getBlogPosts, deleteBlogPost } from "@/lib/admin/blog"
 import type { BlogRow } from "@/lib/supabase/types"
+import { getErrorMessage } from "@/lib/error-utils"
 import { DataTable } from "@/components/shared/data-table"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
@@ -27,7 +28,7 @@ export default function BlogListPage() {
       const data = await getBlogPosts()
       setPosts(data)
     } catch {
-      toast.error("Failed to load blog posts")
+      toast.error(getErrorMessage(null, "Failed to load blog posts"))
     } finally {
       setLoading(false)
     }
@@ -49,7 +50,7 @@ export default function BlogListPage() {
       toast.success("Blog post deleted")
       setPosts((prev) => prev.filter((p) => p.id !== deleteTarget.id))
     } catch {
-      toast.error("Failed to delete blog post")
+      toast.error(getErrorMessage(null, "Failed to delete blog post"))
     } finally {
       setDeleteTarget(null)
     }

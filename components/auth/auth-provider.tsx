@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from "next/navigation"
 import * as React from "react"
 import { getBrowserClient } from "@/lib/supabase/client"
-import { login as doLogin, logout as doLogout, getSession } from "@/lib/admin/auth"
+import { login as doLogin, logout as doLogout } from "@/lib/admin/auth"
 import { AuthContext } from "@/hooks/use-auth"
 import type { Session, User } from "@supabase/supabase-js"
 import { Loader2 } from "lucide-react"
@@ -15,39 +15,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [mounted, setMounted] = React.useState(false)
-  const isLocalhost = React.useRef(false)
+
+  const devBypass =
+    process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true" &&
+    typeof window !== "undefined" &&
+    window.location.hostname === "localhost"
 
   React.useEffect(() => {
-    isLocalhost.current = window.location.hostname === "localhost"
     setMounted(true)
 
-    if (isLocalhost.current) {
+    if (devBypass) {
       setLoading(false)
+      setUser({ id: "dev", email: "dev@localhost" } as unknown as User)
       return
     }
 
     const supabase = getBrowserClient()
 
-    getSession().then((s) => {
-      if (s) {
-        setSession(s)
-        setUser(s.user)
-      }
+    // Safety timeout: if onAuthStateChange doesn't fire within 10s,
+    // the token refresh is likely stuck. Force-clear loading and sign
+    // out so the redirect useEffect sends the user back to login.
+    const safetyTimeout = setTimeout(() => {
       setLoading(false)
-    })
+      supabase.auth.signOut().catch(() => {})
+    }, 10_000)
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      clearTimeout(safetyTimeout)
+
+      if (event === "SIGNED_OUT") {
+        // Session ended (expired, refresh failed, or manual logout).
+        // Redirect is handled by the useEffect below.
+        setSession(null)
+        setUser(null)
+        setLoading(false)
+        return
+      }
+
       setSession(s)
       setUser(s?.user ?? null)
-      if (!s && pathname.startsWith("/dashboard")) {
-        router.replace("/")
-      }
+      setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
-  }, [router, pathname])
+    return () => {
+      clearTimeout(safetyTimeout)
+      subscription.unsubscribe()
+    }
+  }, [devBypass, router])
+
+  // Redirects as side effects — NOT in the render body
+  React.useEffect(() => {
+    if (loading || devBypass) return
+
+    if (!session && pathname.startsWith("/dashboard")) {
+      router.replace("/")
+    }
+
+    if (session && pathname === "/") {
+      router.replace("/dashboard/blog")
+    }
+  }, [loading, devBypass, session, pathname, router])
 
   const login = React.useCallback(
     async (email: string, password: string) => {
@@ -80,17 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
-  const bypass = isLocalhost.current
-
-  if (!bypass && !session && pathname.startsWith("/dashboard")) {
-    router.replace("/")
-    return null
-  }
-
-  if (!bypass && session && pathname === "/") {
-    router.replace("/dashboard/blog")
-    return null
-  }
+  // If a redirect is pending, render nothing while the effect runs
+  if (!devBypass && !session && pathname.startsWith("/dashboard")) return null
+  if (!devBypass && session && pathname === "/") return null
 
   return (
     <AuthContext.Provider value={{ session, user, loading, login, logout }}>

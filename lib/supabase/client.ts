@@ -12,6 +12,12 @@ let browserClient: ReturnType<typeof createClient<Database>> | null = null
 
 export function getBrowserClient() {
   if (browserClient) return browserClient
-  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey)
+  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false, // not using OAuth or magic links
+    },
+  })
   return browserClient
 }

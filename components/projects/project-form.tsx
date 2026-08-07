@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { ChevronLeft, Loader2 } from "lucide-react"
 import { projectSchema, type ProjectFormValues } from "@/lib/validations"
 import type { ProjectUpdateInput } from "@/lib/admin/projects"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -82,7 +83,7 @@ export function ProjectForm({
       await onSubmit(values)
       if (!isEditing) toast.success("Project created")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong")
+      toast.error(getErrorMessage(err, "Something went wrong"))
     } finally {
       setSaving(false)
     }

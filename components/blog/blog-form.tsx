@@ -12,6 +12,7 @@ import {
   type BlogPostFormValues,
 } from "@/lib/validations"
 import type { BlogUpdateInput } from "@/lib/admin/blog"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -90,9 +91,7 @@ export function BlogForm({
       await onSubmit(values)
       if (!isEditing) toast.success("Blog post created")
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Something went wrong",
-      )
+      toast.error(getErrorMessage(err, "Something went wrong"))
     } finally {
       setSaving(false)
     }

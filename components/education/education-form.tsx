@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { ChevronLeft, Loader2 } from "lucide-react"
 import { educationSchema, type EducationFormValues } from "@/lib/validations"
 import type { EducationUpdateInput } from "@/lib/admin/education"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -55,7 +56,7 @@ export function EducationForm({ initialValues, onSubmit, submitLabel, isEditing 
       await onSubmit(values)
       if (!isEditing) toast.success("Entry created")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong")
+      toast.error(getErrorMessage(err, "Something went wrong"))
     } finally {
       setSaving(false)
     }

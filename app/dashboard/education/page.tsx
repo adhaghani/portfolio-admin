@@ -6,9 +6,11 @@ import { Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getEducationEntries, deleteEducationEntry } from "@/lib/admin/education"
 import type { EducationRow } from "@/lib/supabase/types"
+import { getErrorMessage } from "@/lib/error-utils"
 import { DataTable } from "@/components/shared/data-table"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { PageLoading } from "@/components/shared/page-loading"
 import { Button } from "@/components/ui/button"
 
 export default function EducationListPage() {
@@ -19,7 +21,7 @@ export default function EducationListPage() {
 
   const fetch = useCallback(async () => {
     try { setEntries(await getEducationEntries()) }
-    catch { toast.error("Failed to load education entries") }
+    catch { toast.error(getErrorMessage(null, "Failed to load education entries")) }
     finally { setLoading(false) }
   }, [])
 
@@ -32,11 +34,11 @@ export default function EducationListPage() {
       toast.success("Entry deleted")
       setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id))
     } catch {
-      toast.error("Failed to delete entry")
+      toast.error(getErrorMessage(null, "Failed to delete entry"))
     } finally { setDeleteTarget(null) }
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading label="Education" />
 
   return (
     <div className="flex h-full flex-col">

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { createBlogPost } from "@/lib/admin/blog"
 import { BlogForm } from "@/components/blog/blog-form"
+import { getErrorMessage } from "@/lib/error-utils"
 import type { BlogPostFormValues } from "@/lib/validations"
 
 export default function NewBlogPage() {
@@ -15,9 +16,7 @@ export default function NewBlogPage() {
       toast.success("Blog post created")
       router.push("/dashboard/blog")
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to create blog post",
-      )
+      toast.error(getErrorMessage(err, "Failed to create blog post"))
     }
   }
 

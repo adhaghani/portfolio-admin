@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { ChevronLeft, Loader2 } from "lucide-react"
 import { activitySchema, type ActivityFormValues } from "@/lib/validations"
 import type { ActivityUpdateInput } from "@/lib/admin/activities"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -53,7 +54,7 @@ export function ActivityForm({ initialValues, onSubmit, submitLabel, isEditing }
   async function handleFormSubmit(values: ActivityFormValues) {
     setSaving(true)
     try { await onSubmit(values); if (!isEditing) toast.success("Activity created") }
-    catch (err) { toast.error(err instanceof Error ? err.message : "Something went wrong") }
+    catch (err) { toast.error(getErrorMessage(err, "Something went wrong")) }
     finally { setSaving(false) }
   }
 

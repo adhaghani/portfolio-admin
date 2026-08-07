@@ -124,6 +124,9 @@ create policy "Public can read education"
 create policy "Public can read activities"
   on activities for select using (true);
 
+create policy "Public can read certificates"
+  on certificates for select using (true);
+
 -- Authenticated full access (use the Supabase dashboard to manage content)
 create policy "Authenticated users can manage blog posts"
   on blog_posts for all using (auth.role() = 'authenticated');
@@ -136,9 +139,6 @@ create policy "Authenticated users can manage education"
 
 create policy "Authenticated users can manage activities"
   on activities for all using (auth.role() = 'authenticated');
-
-create policy "Public can read certificates"
-  on certificates for select using (true);
 
 create policy "Authenticated users can manage certificates"
   on certificates for all using (auth.role() = 'authenticated');

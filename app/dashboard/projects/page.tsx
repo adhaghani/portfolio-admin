@@ -6,11 +6,13 @@ import { Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getProjects, deleteProject } from "@/lib/admin/projects"
 import type { ProjectRow } from "@/lib/supabase/types"
+import { getErrorMessage } from "@/lib/error-utils"
 import { DataTable } from "@/components/shared/data-table"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { PageLoading } from "@/components/shared/page-loading"
 
 export default function ProjectsListPage() {
   const router = useRouter()
@@ -22,7 +24,7 @@ export default function ProjectsListPage() {
     try {
       setProjects(await getProjects())
     } catch {
-      toast.error("Failed to load projects")
+      toast.error(getErrorMessage(null, "Failed to load projects"))
     } finally {
       setLoading(false)
     }
@@ -37,13 +39,13 @@ export default function ProjectsListPage() {
       toast.success("Project deleted")
       setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id))
     } catch {
-      toast.error("Failed to delete project")
+      toast.error(getErrorMessage(null, "Failed to delete project"))
     } finally {
       setDeleteTarget(null)
     }
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading label="Projects" />
 
   return (
     <div className="flex h-full flex-col">

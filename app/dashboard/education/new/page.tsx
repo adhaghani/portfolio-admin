@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { createEducationEntry } from "@/lib/admin/education"
 import { EducationForm } from "@/components/education/education-form"
+import { getErrorMessage } from "@/lib/error-utils"
 import type { EducationFormValues } from "@/lib/validations"
 
 export default function NewEducationPage() {
@@ -14,7 +15,7 @@ export default function NewEducationPage() {
       toast.success("Education entry created")
       router.push("/dashboard/education")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create entry")
+      toast.error(getErrorMessage(err, "Failed to create entry"))
     }
   }
   return <EducationForm onSubmit={handleSubmit} submitLabel="Create entry" />

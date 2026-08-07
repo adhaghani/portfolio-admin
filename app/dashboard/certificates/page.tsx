@@ -6,9 +6,11 @@ import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getCertificates, deleteCertificate } from "@/lib/admin/certificates"
 import type { CertificateRow } from "@/lib/supabase/types"
+import { getErrorMessage } from "@/lib/error-utils"
 import { DataTable } from "@/components/shared/data-table"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { PageLoading } from "@/components/shared/page-loading"
 import { Button } from "@/components/ui/button"
 
 export default function CertificatesListPage() {
@@ -19,7 +21,7 @@ export default function CertificatesListPage() {
 
   const fetch = useCallback(async () => {
     try { setCertificates(await getCertificates()) }
-    catch { toast.error("Failed to load certificates") }
+    catch { toast.error(getErrorMessage(null, "Failed to load certificates")) }
     finally { setLoading(false) }
   }, [])
 
@@ -31,11 +33,11 @@ export default function CertificatesListPage() {
       await deleteCertificate(deleteTarget.id)
       toast.success("Certificate deleted")
       setCertificates((prev) => prev.filter((c) => c.id !== deleteTarget.id))
-    } catch { toast.error("Failed to delete certificate") }
+    } catch { toast.error(getErrorMessage(null, "Failed to delete certificate")) }
     finally { setDeleteTarget(null) }
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading label="Certificates" />
 
   return (
     <div className="flex h-full flex-col">

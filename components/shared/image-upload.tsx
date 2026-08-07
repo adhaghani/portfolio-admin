@@ -4,7 +4,11 @@ import { useCallback, useRef, useState } from "react"
 import { Copy, Loader2, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
 import { getBrowserClient } from "@/lib/supabase/client"
+import { getErrorMessage } from "@/lib/error-utils"
 import { Button } from "@/components/ui/button"
+
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"]
+const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 
 interface ImageUploadProps {
   value: string | null
@@ -30,6 +34,18 @@ export function ImageUpload({
       const file = e.target.files?.[0]
       if (!file) return
 
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast.error("Invalid file type. Allowed: PNG, JPEG, WebP, SVG.")
+        if (inputRef.current) inputRef.current.value = ""
+        return
+      }
+
+      if (file.size > MAX_SIZE) {
+        toast.error("File must be under 5 MB.")
+        if (inputRef.current) inputRef.current.value = ""
+        return
+      }
+
       setUploading(true)
       setError(null)
 
@@ -50,7 +66,7 @@ export function ImageUpload({
         onChange(publicUrl)
         toast.success("Image uploaded")
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Upload failed"
+        const msg = getErrorMessage(err, "Upload failed")
         setError(msg)
         toast.error(msg)
       } finally {

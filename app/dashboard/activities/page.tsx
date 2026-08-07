@@ -6,11 +6,13 @@ import { Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getActivities, deleteActivity } from "@/lib/admin/activities"
 import type { ActivityRow } from "@/lib/supabase/types"
+import { getErrorMessage } from "@/lib/error-utils"
 import { DataTable } from "@/components/shared/data-table"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { PageLoading } from "@/components/shared/page-loading"
 
 const TYPES = ["all", "program", "ambassadorship", "involvement"] as const
 
@@ -23,7 +25,7 @@ export default function ActivitiesListPage() {
 
   const fetch = useCallback(async () => {
     try { setActivities(await getActivities()) }
-    catch { toast.error("Failed to load activities") }
+    catch { toast.error(getErrorMessage(null, "Failed to load activities")) }
     finally { setLoading(false) }
   }, [])
 
@@ -37,11 +39,11 @@ export default function ActivitiesListPage() {
       await deleteActivity(deleteTarget.id)
       toast.success("Activity deleted")
       setActivities((prev) => prev.filter((a) => a.id !== deleteTarget.id))
-    } catch { toast.error("Failed to delete activity") }
+    } catch { toast.error(getErrorMessage(null, "Failed to delete activity")) }
     finally { setDeleteTarget(null) }
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading label="Activities" />
 
   return (
     <div className="flex h-full flex-col">
