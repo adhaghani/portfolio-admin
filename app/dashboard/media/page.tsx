@@ -16,6 +16,17 @@ const BUCKET = "content-images"
 const FOLDER = "general"
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"]
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
+const LIST_PAGE_SIZE = 100
+
+type MediaFile = FileObject & { path: string }
+
+function joinPath(directory: string, name: string): string {
+  return directory ? `${directory}/${name}` : name
+}
+
+function getDirectory(path: string): string {
+  return path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "root"
+}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -24,24 +35,58 @@ function formatSize(bytes: number): string {
 }
 
 export default function MediaPage() {
-  const [files, setFiles] = useState<FileObject[]>([])
+  const [files, setFiles] = useState<MediaFile[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<FileObject | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<MediaFile | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const supabase = getBrowserClient()
 
   const fetchFiles = useCallback(async () => {
     try {
-      const { data, error } = await supabase.storage
-        .from(BUCKET)
-        .list(FOLDER, { sortBy: { column: "created_at", order: "desc" } })
-      if (error) throw error
-      setFiles(data ?? [])
+      const media: MediaFile[] = []
+
+      async function walkDirectory(directory: string) {
+        let offset = 0
+
+        while (true) {
+          const { data, error } = await supabase.storage
+            .from(BUCKET)
+            .list(directory, {
+              limit: LIST_PAGE_SIZE,
+              offset,
+              sortBy: { column: "name", order: "asc" },
+            })
+          if (error) throw error
+
+          const entries = data ?? []
+
+          for (const entry of entries) {
+            const path = joinPath(directory, entry.name)
+
+            if (entry.id === null) {
+              await walkDirectory(path)
+            } else {
+              media.push({ ...entry, path })
+            }
+          }
+
+          if (entries.length < LIST_PAGE_SIZE) break
+          offset += LIST_PAGE_SIZE
+        }
+      }
+
+      await walkDirectory("")
+      media.sort(
+        (a, b) =>
+          new Date(b.created_at ?? 0).getTime() -
+          new Date(a.created_at ?? 0).getTime()
+      )
+      setFiles(media)
     } catch {
       toast.error(
-        getErrorMessage(null, "Failed to load files. Is the bucket set up?"),
+        getErrorMessage(null, "Failed to load files. Is the bucket set up?")
       )
     } finally {
       setLoading(false)
@@ -49,7 +94,11 @@ export default function MediaPage() {
   }, [supabase])
 
   useEffect(() => {
-    fetchFiles()
+    async function loadFiles() {
+      await fetchFiles()
+    }
+
+    loadFiles()
   }, [fetchFiles])
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -88,10 +137,10 @@ export default function MediaPage() {
     try {
       const { error } = await supabase.storage
         .from(BUCKET)
-        .remove([`${FOLDER}/${deleteTarget.name}`])
+        .remove([deleteTarget.path])
       if (error) throw error
       toast.success("File deleted")
-      setFiles((prev) => prev.filter((f) => f.name !== deleteTarget.name))
+      setFiles((prev) => prev.filter((file) => file.path !== deleteTarget.path))
     } catch {
       toast.error(getErrorMessage(null, "Failed to delete file"))
     } finally {
@@ -99,10 +148,17 @@ export default function MediaPage() {
     }
   }
 
-  function getPublicUrl(filename: string): string {
-    return supabase.storage
-      .from(BUCKET)
-      .getPublicUrl(`${FOLDER}/${filename}`).data.publicUrl
+  function getPublicUrl(filePath: string): string {
+    return supabase.storage.from(BUCKET).getPublicUrl(filePath).data.publicUrl
+  }
+
+  async function copyUrl(file: MediaFile) {
+    try {
+      await navigator.clipboard.writeText(getPublicUrl(file.path))
+      toast.success("URL copied to clipboard")
+    } catch {
+      toast.error("Could not copy URL. Select it manually and copy.")
+    }
   }
 
   const imageFiles = files
@@ -118,13 +174,13 @@ export default function MediaPage() {
         disabled={uploading}
         className="relative mb-8 flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-none border border-dashed border-border/50 py-10 transition-colors hover:border-foreground/30"
       >
-        <div className="halftone-dots-sm pointer-events-none absolute inset-0 text-muted-foreground/[0.03]" />
+        <div className="pointer-events-none absolute inset-0 halftone-dots-sm text-muted-foreground/[0.03]" />
         {uploading ? (
           <Loader2 className="relative size-6 animate-spin text-muted-foreground" />
         ) : (
           <Upload className="relative size-6 text-muted-foreground/40" />
         )}
-        <span className="relative font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
+        <span className="relative font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
           {uploading ? "Uploading..." : "Drag & drop or click to upload"}
         </span>
       </button>
@@ -136,6 +192,18 @@ export default function MediaPage() {
         className="hidden"
       />
 
+      {!loading && imageFiles.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="label-mono">
+            {imageFiles.length}{" "}
+            {imageFiles.length === 1 ? "media file" : "media files"}
+          </p>
+          <p className="font-mono text-[10px] text-muted-foreground">
+            Click a preview or URL to copy its link
+          </p>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <div className="flex justify-center py-12">
@@ -143,7 +211,7 @@ export default function MediaPage() {
         </div>
       ) : imageFiles.length === 0 ? (
         <div className="relative flex flex-col items-center justify-center rounded-none border border-border/50 py-16">
-          <div className="halftone-dots pointer-events-none absolute inset-0 text-muted-foreground/[0.04]" />
+          <div className="pointer-events-none absolute inset-0 halftone-dots text-muted-foreground/[0.04]" />
           <p className="relative font-mono text-sm text-muted-foreground">
             No files uploaded yet
           </p>
@@ -155,22 +223,26 @@ export default function MediaPage() {
               key: "preview",
               header: "Preview",
               render: (f) => {
-                const file = f as unknown as FileObject
-                const url = getPublicUrl(file.name)
+                const file = f as unknown as MediaFile
+                const url = getPublicUrl(file.path)
                 return (
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
+                  <button
+                    type="button"
+                    onClick={() => copyUrl(file)}
+                    title="Click to copy URL"
+                    aria-label={`Copy URL for ${file.name}`}
+                    className="group relative block h-10 w-16 overflow-hidden rounded-none border border-border/30 bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     <img
                       src={url}
                       alt={file.name}
-                      className="h-10 w-16 rounded-none border border-border/30 object-cover transition-opacity hover:opacity-80"
+                      className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
                       loading="lazy"
                     />
-                  </a>
+                    <span className="absolute inset-0 flex items-center justify-center bg-foreground/70 text-background opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                      <Copy className="size-3.5" />
+                    </span>
+                  </button>
                 )
               },
             },
@@ -178,11 +250,16 @@ export default function MediaPage() {
               key: "name",
               header: "Filename",
               render: (f) => {
-                const file = f as unknown as FileObject
+                const file = f as unknown as MediaFile
                 return (
-                  <span className="truncate font-mono text-xs">
-                    {file.name}
-                  </span>
+                  <div className="min-w-0">
+                    <span className="block truncate font-mono text-xs">
+                      {file.name}
+                    </span>
+                    <span className="mt-0.5 block truncate font-mono text-[10px] text-muted-foreground">
+                      {getDirectory(file.path)}
+                    </span>
+                  </div>
                 )
               },
             },
@@ -190,12 +267,10 @@ export default function MediaPage() {
               key: "size",
               header: "Size",
               render: (f) => {
-                const file = f as unknown as FileObject
+                const file = f as unknown as MediaFile
                 return (
                   <span className="font-mono text-xs text-muted-foreground">
-                    {file.metadata?.size
-                      ? formatSize(file.metadata.size)
-                      : "—"}
+                    {file.metadata?.size ? formatSize(file.metadata.size) : "—"}
                   </span>
                 )
               },
@@ -204,7 +279,7 @@ export default function MediaPage() {
               key: "created_at",
               header: "Uploaded",
               render: (f) => {
-                const file = f as unknown as FileObject
+                const file = f as unknown as MediaFile
                 return (
                   <span className="font-mono text-xs text-muted-foreground">
                     {file.created_at
@@ -222,35 +297,29 @@ export default function MediaPage() {
               key: "url",
               header: "URL",
               render: (f) => {
-                const file = f as unknown as FileObject
-                const url = getPublicUrl(file.name)
+                const file = f as unknown as MediaFile
+                const url = getPublicUrl(file.path)
                 return (
-                  <div className="flex items-center gap-2">
-                    <code className="max-w-[240px] truncate font-mono text-[10px] text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => copyUrl(file)}
+                    title="Copy URL"
+                    aria-label={`Copy URL for ${file.name}`}
+                    className="group flex w-full min-w-0 items-center gap-2 rounded-sm text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    <code className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted-foreground group-hover:text-foreground">
                       {url}
                     </code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigator.clipboard.writeText(url)
-                        toast.success("URL copied to clipboard")
-                      }}
-                      className="size-7 shrink-0"
-                      title="Copy URL"
-                    >
-                      <Copy className="size-3" />
-                    </Button>
-                  </div>
+                    <Copy className="size-3 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                  </button>
                 )
               },
             },
           ]}
           data={imageFiles as unknown as Record<string, unknown>[]}
           actions={(f) => {
-            const file = f as unknown as FileObject
-            const url = getPublicUrl(file.name)
+            const file = f as unknown as MediaFile
+            const url = getPublicUrl(file.path)
             return (
               <div className="flex items-center justify-end gap-0.5">
                 <Button
@@ -283,7 +352,7 @@ export default function MediaPage() {
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
         title="Delete file?"
-        description={`"${deleteTarget?.name}" will be permanently deleted.`}
+        description={`"${deleteTarget?.path}" will be permanently deleted.`}
         onConfirm={handleDelete}
       />
     </>
